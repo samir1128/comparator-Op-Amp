@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Op-Amp Comparator Simulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        label {
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .value-display {
+            font-size: 12px;
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        .graph-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 400px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            display: block;
+        }
+        
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .info-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .info-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            canvas {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Op-Amp Comparator Simulator</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="frequency">Frequency (Hz)</label>
+                <input type="range" id="frequency" min="0.1" max="5" step="0.1" value="1">
+                <div class="value-display" id="freqValue">1.0 Hz</div>
+            </div>
+            
+            <div class="control-group">
+                <label for="amplitude">Input Amplitude (V)</label>
+                <input type="range" id="amplitude" min="1" max="10" step="0.5" value="5">
+                <div class="value-display" id="ampValue">5.0 V</div>
+            </div>
+            
+            <div class="control-group">
+                <label for="offset">DC Offset (V)</label>
+                <input type="range" id="offset" min="-5" max="5" step="0.1" value="0">
+                <div class="value-display" id="offsetValue">0.0 V</div>
+            </div>
+            
+            <div class="control-group">
+                <label for="supply">Supply Voltage (±V)</label>
+                <input type="range" id="supply" min="5" max="15" step="1" value="12">
+                <div class="value-display" id="supplyValue">±12 V</div>
+            </div>
+        </div>
+        
+        <div class="graph-container">
+            <canvas id="waveformCanvas"></canvas>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff6b6b;"></div>
+                    <span>V+ (Non-inverting)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4ecdc4;"></div>
+                    <span>V- (Inverting)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffd700;"></div>
+                    <span>Output (Vout)</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div style="display: grid; grid-template-columns: 1fr 300px; gap: 30px; align-items: start;">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div>Current V+ Value</div>
+                        <div class="info-value" id="currentVPlus">0.0 V</div>
+                    </div>
+                    <div class="info-item">
+                        <div>Current V- Value</div>
+                        <div class="info-value" id="currentVMinus">0.0 V</div>
+                    </div>
+                    <div class="info-item">
+                        <div>Output State</div>
+                        <div class="info-value" id="outputState">+Vcc</div>
+                    </div>
+                    <div class="info-item">
+                        <div>Phase Difference</div>
+                        <div class="info-value">180°</div>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(255, 255, 255, 0.1); border-radius: 15px; padding: 20px;">
+                    <h3 style="text-align: center; margin-top: 0; margin-bottom: 15px; color: #ffd700;">Circuit Diagram</h3>
+                    <svg width="260" height="220" viewBox="0 0 260 220" style="background: rgba(0, 0, 0, 0.2); border-radius: 10px;">
+                        <!-- Op-Amp Triangle -->
+                        <polygon points="80,60 80,160 180,110" fill="none" stroke="#ffffff" stroke-width="3"/>
+                        
+                        <!-- Input terminals -->
+                        <circle cx="70" cy="85" r="3" fill="#ff6b6b"/>
+                        <circle cx="70" cy="135" r="3" fill="#4ecdc4"/>
+                        
+                        <!-- Input lines -->
+                        <line x1="20" y1="85" x2="80" y2="85" stroke="#ff6b6b" stroke-width="3"/>
+                        <line x1="20" y1="135" x2="80" y2="135" stroke="#4ecdc4" stroke-width="3"/>
+                        
+                        <!-- Output line -->
+                        <line x1="180" y1="110" x2="230" y2="110" stroke="#ffd700" stroke-width="4"/>
+                        <circle cx="230" cy="110" r="4" fill="#ffd700"/>
+                        
+                        <!-- Supply voltage lines -->
+                        <line x1="130" y1="50" x2="130" y2="60" stroke="#ffffff" stroke-width="2"/>
+                        <line x1="130" y1="160" x2="130" y2="170" stroke="#ffffff" stroke-width="2"/>
+                        
+                        <!-- Labels -->
+                        <text x="15" y="80" fill="#ff6b6b" font-size="14" font-weight="bold">V+</text>
+                        <text x="15" y="140" fill="#4ecdc4" font-size="14" font-weight="bold">V-</text>
+                        <text x="235" y="115" fill="#ffd700" font-size="14" font-weight="bold">Vout</text>
+                        
+                        <!-- Supply voltage labels -->
+                        <text x="140" y="45" fill="#ffffff" font-size="12">+Vcc</text>
+                        <text x="140" y="185" fill="#ffffff" font-size="12">-Vcc</text>
+                        
+                        <!-- Plus and minus signs -->
+                        <text x="90" y="90" fill="#ffffff" font-size="16" font-weight="bold">+</text>
+                        <text x="90" y="140" fill="#ffffff" font-size="18" font-weight="bold">−</text>
+                        
+                        <!-- Input waveform symbols -->
+                        <g transform="translate(20,70)">
+                            <path d="M0,0 L8,8 L16,0 L24,8" stroke="#ff6b6b" stroke-width="2" fill="none"/>
+                        </g>
+                        <g transform="translate(20,120)">
+                            <path d="M0,8 L8,0 L16,8 L24,0" stroke="#4ecdc4" stroke-width="2" fill="none"/>
+                        </g>
+                        
+                        <!-- Output waveform symbol -->
+                        <g transform="translate(190,102)">
+                            <rect x="0" y="0" width="6" height="6" fill="#ffd700"/>
+                            <rect x="6" y="10" width="6" height="6" fill="#ffd700"/>
+                            <rect x="12" y="0" width="6" height="6" fill="#ffd700"/>
+                            <rect x="18" y="10" width="6" height="6" fill="#ffd700"/>
+                        </g>
+                        
+                        <!-- Circuit description -->
+                        <text x="130" y="200" fill="#ffffff" font-size="12" text-anchor="middle" font-weight="bold">Comparator Configuration</text>
+                        <text x="130" y="215" fill="#cccccc" font-size="10" text-anchor="middle">No Feedback (Open Loop)</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('waveformCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // Control elements
+        const freqSlider = document.getElementById('frequency');
+        const ampSlider = document.getElementById('amplitude');
+        const offsetSlider = document.getElementById('offset');
+        const supplySlider = document.getElementById('supply');
+        
+        const freqValue = document.getElementById('freqValue');
+        const ampValue = document.getElementById('ampValue');
+        const offsetValue = document.getElementById('offsetValue');
+        const supplyValue = document.getElementById('supplyValue');
+        
+        const currentVPlus = document.getElementById('currentVPlus');
+        const currentVMinus = document.getElementById('currentVMinus');
+        const outputState = document.getElementById('outputState');
+        
+        let animationId;
+        let time = 0;
+        
+        // Update value displays
+        function updateControls() {
+            freqValue.textContent = parseFloat(freqSlider.value).toFixed(1) + ' Hz';
+            ampValue.textContent = parseFloat(ampSlider.value).toFixed(1) + ' V';
+            offsetValue.textContent = parseFloat(offsetSlider.value).toFixed(1) + ' V';
+            supplyValue.textContent = '±' + supplySlider.value + ' V';
+        }
+        
+        // Event listeners
+        [freqSlider, ampSlider, offsetSlider, supplySlider].forEach(slider => {
+            slider.addEventListener('input', updateControls);
+        });
+        
+        updateControls();
+        
+        function drawGrid() {
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            const sectionHeight = height / 3;
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            // Vertical grid lines
+            for (let x = 0; x < width; x += width / 10) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            
+            // Horizontal grid lines for each section
+            for (let section = 0; section < 3; section++) {
+                const sectionTop = section * sectionHeight;
+                for (let y = sectionTop; y <= sectionTop + sectionHeight; y += sectionHeight / 4) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        function drawAxes() {
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            const sectionHeight = height / 3;
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            
+            // Center horizontal line for each section (0V reference)
+            for (let section = 0; section < 3; section++) {
+                const centerY = section * sectionHeight + sectionHeight / 2;
+                ctx.beginPath();
+                ctx.moveTo(0, centerY);
+                ctx.lineTo(width, centerY);
+                ctx.stroke();
+            }
+        }
+        
+        function triangleWave(t, freq, amp, offset, phaseShift = 0) {
+            const period = 1 / freq;
+            const phaseTime = t + phaseShift / (2 * Math.PI * freq);
+            const normalizedTime = ((phaseTime % period) + period) % period;
+            const normalizedPhase = normalizedTime / period;
+            
+            let triangleValue;
+            if (normalizedPhase < 0.5) {
+                triangleValue = 4 * normalizedPhase - 1; // Rising from -1 to +1
+            } else {
+                triangleValue = 3 - 4 * normalizedPhase; // Falling from +1 to -1
+            }
+            
+            return amp * triangleValue + offset;
+        }
+        
+        function drawWaveforms() {
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            
+            const frequency = parseFloat(freqSlider.value);
+            const amplitude = parseFloat(ampSlider.value);
+            const offset = parseFloat(offsetSlider.value);
+            const supply = parseFloat(supplySlider.value);
+            
+            const timeSpan = 4; // Show 4 seconds
+            const samples = width;
+            
+            // Divide canvas into 3 horizontal sections
+            const sectionHeight = height / 3;
+            const section1Y = sectionHeight / 2; // V+ center
+            const section2Y = sectionHeight + sectionHeight / 2; // V- center
+            const section3Y = 2 * sectionHeight + sectionHeight / 2; // Vout center
+            
+            // Calculate voltage scale for each section
+            const inputVoltageScale = (sectionHeight * 0.7) / (2 * amplitude);
+            const outputVoltageScale = (sectionHeight * 0.7) / (2 * supply);
+            
+            // Arrays to store waveform data
+            const vPlusData = [];
+            const vMinusData = [];
+            const vOutData = [];
+            
+            // Generate waveform data
+            for (let i = 0; i < samples; i++) {
+                const t = (i / samples) * timeSpan + time;
+                
+                // V+ (non-inverting): triangular wave
+                const vPlus = triangleWave(t, frequency, amplitude, offset);
+                
+                // V- (inverting): same triangular wave but T/2 phase shifted (180°)
+                const vMinus = triangleWave(t, frequency, amplitude, offset, Math.PI);
+                
+                // Comparator output: +Vcc if V+ > V-, -Vcc if V+ < V-
+                const vOut = vPlus > vMinus ? supply : -supply;
+                
+                vPlusData.push(vPlus);
+                vMinusData.push(vMinus);
+                vOutData.push(vOut);
+            }
+            
+            // Draw section separators
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, sectionHeight);
+            ctx.lineTo(width, sectionHeight);
+            ctx.moveTo(0, 2 * sectionHeight);
+            ctx.lineTo(width, 2 * sectionHeight);
+            ctx.stroke();
+            
+            // Draw center lines for each section
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            [section1Y, section2Y, section3Y].forEach(centerY => {
+                ctx.beginPath();
+                ctx.moveTo(0, centerY);
+                ctx.lineTo(width, centerY);
+                ctx.stroke();
+            });
+            
+            // Draw V+ (non-inverting) in top section - Red
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < samples; i++) {
+                const x = (i / samples) * width;
+                const y = section1Y - (vPlusData[i] - offset) * inputVoltageScale;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Draw V- (inverting) in middle section - Teal
+            ctx.strokeStyle = '#4ecdc4';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < samples; i++) {
+                const x = (i / samples) * width;
+                const y = section2Y - (vMinusData[i] - offset) * inputVoltageScale;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Draw Output in bottom section - Gold
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            for (let i = 0; i < samples; i++) {
+                const x = (i / samples) * width;
+                const y = section3Y - vOutData[i] * outputVoltageScale;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Update current values (at current time)
+            const currentIdx = Math.floor(samples * 0.75); // Show values at 75% of the display
+            if (currentIdx < samples) {
+                currentVPlus.textContent = vPlusData[currentIdx].toFixed(2) + ' V';
+                currentVMinus.textContent = vMinusData[currentIdx].toFixed(2) + ' V';
+                outputState.textContent = vOutData[currentIdx] > 0 ? '+Vcc' : '-Vcc';
+            }
+            
+            // Draw voltage labels and section titles
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'left';
+            
+            // Section titles
+            ctx.fillText('V+ (Non-inverting)', 10, 20);
+            ctx.fillText('V- (Inverting)', 10, sectionHeight + 20);
+            ctx.fillText('Vout (Output)', 10, 2 * sectionHeight + 20);
+            
+            // Voltage labels for input sections
+            ctx.font = '11px Arial';
+            const maxInputV = amplitude + Math.abs(offset);
+            const minInputV = -amplitude + offset;
+            const inputLevels = [maxInputV, offset, minInputV];
+            
+            inputLevels.forEach(voltage => {
+                // V+ section labels
+                const y1 = section1Y - (voltage - offset) * inputVoltageScale;
+                if (y1 >= 0 && y1 <= sectionHeight) {
+                    ctx.fillText(voltage.toFixed(1) + 'V', width - 40, y1 + 4);
+                }
+                
+                // V- section labels
+                const y2 = section2Y - (voltage - offset) * inputVoltageScale;
+                if (y2 >= sectionHeight && y2 <= 2 * sectionHeight) {
+                    ctx.fillText(voltage.toFixed(1) + 'V', width - 40, y2 + 4);
+                }
+            });
+            
+            // Output section labels
+            const outputLevels = [supply, 0, -supply];
+            outputLevels.forEach(voltage => {
+                const y = section3Y - voltage * outputVoltageScale;
+                if (y >= 2 * sectionHeight && y <= height) {
+                    ctx.fillText(voltage.toFixed(0) + 'V', width - 40, y + 4);
+                }
+            });
+        }
+        
+        function animate() {
+            const rect = canvas.getBoundingClientRect();
+            ctx.clearRect(0, 0, rect.width, rect.height);
+            
+            drawGrid();
+            drawAxes();
+            drawWaveforms();
+            
+            time += 0.02; // Increment time for animation
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
